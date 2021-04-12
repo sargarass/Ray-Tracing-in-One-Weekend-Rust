@@ -24,7 +24,6 @@ fn main() -> Result<(), Box<dyn Error>> {
     let image_height = (image_width as f32 / aspect_ratio) as i32;
 
     // camera
-
     let viewport_height = 2.0;
     let viewport_width = aspect_ratio * viewport_height;
     let focal_length = 1.0;
@@ -34,8 +33,6 @@ fn main() -> Result<(), Box<dyn Error>> {
     let vertical = Vec3::new(0.0, viewport_height, 0.0);
     let lower_left_corner =
         origin - horizontal / 2.0 - vertical / 2.0 - Vec3::new(0.0, 0.0, focal_length);
-
-    println!("{} {} {}", lower_left_corner.x, lower_left_corner.y, lower_left_corner.z);
 
     // render
     let mut file = fs::OpenOptions::new()
