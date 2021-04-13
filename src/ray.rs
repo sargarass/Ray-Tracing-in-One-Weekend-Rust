@@ -25,9 +25,9 @@ mod tests {
     use super::*;
 
     #[test]
-    fn point_at_param() {
+    fn at() {
         let t = Ray::new(Point3::new(-1.0, 1.0, -1.0), Vec3::new(1.0, -1.0, 1.0));
-        assert_eq!(t.point_at_param(1.0), Point3::new(0.0, 0.0, 0.0));
-        assert_eq!(t.point_at_param(2.0), Point3::new(1.0, -1.0, 1.0));
+        assert_eq!(t.at(1.0), Point3::new(0.0, 0.0, 0.0));
+        assert_eq!(t.at(2.0), Point3::new(1.0, -1.0, 1.0));
     }
 }
