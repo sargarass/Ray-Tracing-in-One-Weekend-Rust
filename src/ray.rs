@@ -15,7 +15,7 @@ impl Ray {
         }
     }
 
-    pub fn point_at_param(self, t: f32) -> Point3 {
+    pub fn at(self, t: f32) -> Point3 {
         self.orig + t * self.dir
     }
 }

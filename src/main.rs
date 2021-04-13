@@ -6,15 +6,80 @@ mod vector;
 use crate::color::Color;
 use crate::point::Point3;
 use crate::ray::Ray;
-use crate::vector::{Normalize, Vec3};
+use crate::vector::{Dot, Norm, Normalize, Vec3};
 use std::error::Error;
 use std::fs;
 use std::io::Write;
 
+struct Hit {
+    pub p: Point3,
+    pub n: Vec3,
+    pub t: f32,
+}
+
+trait Hittable {
+    fn hit(&self, r: Ray, t_min: f32, t_max: f32) -> Option<Hit>;
+}
+
+struct Sphere {
+    pub center: Point3,
+    pub radius: f32,
+}
+
+impl Sphere {
+    pub fn new(center: Point3, radius: f32) -> Sphere {
+        Sphere {
+            center: center,
+            radius: radius,
+        }
+    }
+}
+
+impl Hittable for Sphere {
+    fn hit(&self, r: Ray, t_min: f32, t_max: f32) -> Option<Hit> {
+        let oc = r.orig - self.center;
+        let a = Vec3::norm(r.dir);
+        let half_b = Vec3::dot(oc, r.dir);
+        let c = Vec3::norm(oc) - self.radius * self.radius;
+
+        let d = half_b * half_b - a * c;
+        if d < 0.0 {
+            return None;
+        }
+
+        let sqrt_d = d.sqrt();
+
+        // Find the nearest root that lies in the acceptable range.
+        let mut root = (-half_b - sqrt_d) / a;
+        if root < t_min || t_max < root {
+            root = (-half_b + sqrt_d) / a;
+            if root < t_min || t_max < root {
+                return None;
+            }
+        }
+
+        let p = r.at(root);
+        return Some(Hit {
+            t: root,
+            p: p,
+            n: (p - self.center) / self.radius,
+        });
+    }
+}
+
 fn ray_color(r: &ray::Ray) -> Color {
-    let unit_dir = Vec3::normalize(r.dir);
-    let t = 0.5 * (unit_dir.y + 1.0);
-    Color::lerp(Color::new(1.0, 1.0, 1.0), Color::new(0.5, 0.7, 1.0), t)
+    let s = Sphere::new(Point3::new(0.0, 0.0, -1.0), 0.5);
+    match s.hit(*r, 0.000001, f32::MAX) {
+        Some(hit) => {
+            let n = hit.n;
+            return 0.5 * Color::new(n.x + 1.0, n.y + 1.0, n.z + 1.0);
+        }
+        None => {
+            let unit_dir = Vec3::normalize(r.dir);
+            let t = 0.5 * (unit_dir.y + 1.0);
+            return Color::lerp(Color::new(1.0, 1.0, 1.0), Color::new(0.5, 0.7, 1.0), t);
+        }
+    }
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
