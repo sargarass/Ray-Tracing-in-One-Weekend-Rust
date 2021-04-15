@@ -22,7 +22,7 @@ pub trait Normalize: Sized + Copy + Len + Norm + Dot + std::ops::Div<f32, Output
     }
 }
 
-trait Cross: Sized + Copy {
+pub trait Cross: Sized + Copy {
     fn cross(self, v: Self) -> Self;
 }
 
@@ -45,7 +45,7 @@ impl Vec3 {
 
 impl Dot for Vec3 {
     fn dot(self, w: Self) -> f32 {
-        return self.x * w.x + self.y * w.y + self.z * w.z;
+        self.x * w.x + self.y * w.y + self.z * w.z
     }
 }
 
@@ -79,6 +79,7 @@ impl Mul<Vec3> for f32 {
 
 impl Div<f32> for Vec3 {
     type Output = Vec3;
+    #[allow(clippy::suspicious_arithmetic_impl)]
     fn div(self, r: f32) -> Vec3 {
         r.recip() * self
     }
@@ -89,6 +90,16 @@ impl Norm for Vec3 {}
 impl Len for Vec3 {}
 
 impl Normalize for Vec3 {}
+
+impl Cross for Vec3 {
+    fn cross(self, v: Self) -> Self {
+        Vec3::new(
+            self.y * v.z - self.z * v.y,
+            -(self.x * v.z - self.z * v.x),
+            self.x * v.y - self.y * v.x,
+        )
+    }
+}
 
 #[cfg(test)]
 mod tests {

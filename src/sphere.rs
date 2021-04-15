@@ -15,12 +15,14 @@ impl Sphere {
 }
 
 impl Hittable for Sphere {
-    fn hit(&self, r: Ray, t_min: f32, t_max: f32) -> Option<Hit> {
-        let oc = r.orig - self.center;
-        let a = Vec3::norm(r.dir);
-        let half_b = Vec3::dot(oc, r.dir);
+    fn hit(&self, ray: Ray, t_min: f32, t_max: f32) -> Option<Hit> {
+        let oc = ray.orig - self.center;
+        let a = Vec3::norm(ray.dir);
+        let half_b = Vec3::dot(oc, ray.dir);
         let c = Vec3::norm(oc) - self.radius * self.radius;
-
+        // computing a discriminant
+        #[allow(clippy::suspicious_operation_groupings)]
+        // suspend lint for the operation: was triggered by half_b * half_b
         let d = half_b * half_b - a * c;
         if d < 0.0 {
             return None;
@@ -36,11 +38,11 @@ impl Hittable for Sphere {
             }
         }
 
-        let p = r.at(root);
-        return Some(Hit {
+        let p = ray.at(root);
+        Some(Hit {
             t: root,
-            p: p,
+            p,
             n: (p - self.center) / self.radius,
-        });
+        })
     }
 }

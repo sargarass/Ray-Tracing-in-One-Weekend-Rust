@@ -17,7 +17,7 @@ impl Color {
     }
 
     pub fn lerp(self, end: Color, t: f32) -> Color {
-        assert!(t <= 1.0 && t >= 0.0);
+        assert!((0.0..=1.0).contains(&t));
         (1.0 - t) * self + t * end
     }
 }
