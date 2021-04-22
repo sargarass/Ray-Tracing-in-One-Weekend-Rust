@@ -1,6 +1,6 @@
-use std::ops::{Add, Div, Mul, Neg, Sub};
+use rand::distributions::{Distribution, Standard};
 use rand::Rng;
-use rand::distributions::{Distribution, Uniform};
+use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 
 pub trait Dot: Sized + Copy {
     fn dot(self, w: Self) -> f32;
@@ -31,6 +31,12 @@ pub trait Cross: Sized + Copy {
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Vec3(pub f32, pub f32, pub f32);
 
+impl From<Vec3> for (f32, f32, f32) {
+    fn from(v: Vec3) -> Self {
+        (v.0, v.1, v.2)
+    }
+}
+
 impl Vec3 {
     pub fn x(&self) -> f32 {
         self.0
@@ -60,32 +66,68 @@ impl Neg for Vec3 {
     }
 }
 
+impl AddAssign for Vec3 {
+    fn add_assign(&mut self, rhs: Self) {
+        self.0 += rhs.0;
+        self.1 += rhs.1;
+        self.2 += rhs.2;
+    }
+}
+
+impl SubAssign for Vec3 {
+    fn sub_assign(&mut self, rhs: Self) {
+        self.0 -= rhs.0;
+        self.1 -= rhs.1;
+        self.2 -= rhs.2;
+    }
+}
+
+impl MulAssign<f32> for Vec3 {
+    fn mul_assign(&mut self, rhs: f32) {
+        self.0 *= rhs;
+        self.1 *= rhs;
+        self.2 *= rhs;
+    }
+}
+
+impl DivAssign<f32> for Vec3 {
+    fn div_assign(&mut self, rhs: f32) {
+        self.0 /= rhs;
+        self.1 /= rhs;
+        self.2 /= rhs;
+    }
+}
+
 impl Add for Vec3 {
     type Output = Vec3;
-    fn add(self, v: Vec3) -> Vec3 {
-        Vec3(self.0 + v.0, self.1 + v.1, self.2 + v.2)
+    fn add(mut self, v: Vec3) -> Vec3 {
+        self += v;
+        self
     }
 }
 
 impl Sub for Vec3 {
     type Output = Vec3;
-    fn sub(self, v: Vec3) -> Vec3 {
-        Vec3(self.0 - v.0, self.1 - v.1, self.2 - v.2)
+    fn sub(mut self, v: Vec3) -> Vec3 {
+        self -= v;
+        self
     }
 }
 
 impl Mul<Vec3> for f32 {
     type Output = Vec3;
-    fn mul(self, v: Vec3) -> Vec3 {
-        Vec3(self * v.0, self * v.1, self * v.2)
+    fn mul(self, mut rhs: Vec3) -> Vec3 {
+        rhs *= self;
+        rhs
     }
 }
 
 impl Div<f32> for Vec3 {
     type Output = Vec3;
     #[allow(clippy::suspicious_arithmetic_impl)]
-    fn div(self, r: f32) -> Vec3 {
-        r.recip() * self
+    fn div(mut self, r: f32) -> Vec3 {
+        self *= r.recip();
+        self
     }
 }
 
@@ -105,27 +147,39 @@ impl Cross for Vec3 {
     }
 }
 
-pub fn random_in_unit_circle<R: Rng>(rng: &mut R) -> (f32, f32) {
-    let between = Uniform::from(0.0..=1.0);
-    let u = between.sample(rng);
-    let v = between.sample(rng);
-    let w = between.sample(rng);
-    let s = between.sample(rng);
+#[allow(clippy::many_single_char_names)]
+pub fn uniform_in_unit_sphere<R: Rng>(rng: &mut R) -> (f32, f32, f32) {
+    // Let d = 5
+    // Compute d random numbers with the Normal Distribution
+    let distribution = Standard;
+    let u = 2.0 * Distribution::<f32>::sample(&distribution, rng) - 1.0;
+    let v = 2.0 * Distribution::<f32>::sample(&distribution, rng) - 1.0;
+    let w = 2.0 * Distribution::<f32>::sample(&distribution, rng) - 1.0;
+    let s = 2.0 * Distribution::<f32>::sample(&distribution, rng) - 1.0;
+    let t = 2.0 * Distribution::<f32>::sample(&distribution, rng) - 1.0;
+    // According to Muller, Marsaglia there is a relationship between a d-ball and the Normal Distribution:
+    // let u, ... t ~ N(-1,1) aka has the Normal Distribution, and l = sqrt(u^2 + ... t^2)
+    // then (u / l, ..., t / l) is uniformly distributed on a unit d-ball
 
-    let norm = f32::sqrt(u*u + v*v + w*w + s*s);
-    return (u / norm, v / norm);
+    // inv_l = 1 / l
+    let inv_l = f32::recip(f32::sqrt(u * u + v * v + w * w + s * s + t * t));
+
+    // Now using method 9: Dropped Coordinates (proved by Voelker)
+    // http://extremelearning.com.au/how-to-generate-uniformly-random-points-on-n-spheres-and-n-balls/
+    // for uniformity inside (d-2) unit ball just drop last 2 coordinates
+    (inv_l * Vec3(u, v, w)).into()
 }
 
-pub fn random_in_unit_sphere<R: Rng>(rng: &mut R) -> (f32, f32, f32) {
-    let between = Uniform::from(0.0..=1.0);
-    let u = between.sample(rng);
-    let v = between.sample(rng);
-    let w = between.sample(rng);
-    let s = between.sample(rng);
-    let t = between.sample(rng);
+pub fn uniform_on_unit_sphere<R: Rng>(rng: &mut R) -> (f32, f32, f32) {
+    // Use the same trick as in fn uniform_in_unit_sphere
+    let distribution = Standard;
+    let u = 2.0 * Distribution::<f32>::sample(&distribution, rng) - 1.0;
+    let v = 2.0 * Distribution::<f32>::sample(&distribution, rng) - 1.0;
+    let w = 2.0 * Distribution::<f32>::sample(&distribution, rng) - 1.0;
+    let inv_l = f32::recip(f32::sqrt(u * u + v * v + w * w));
 
-    let norm = f32::sqrt(u*u + v*v + w*w + s*s + t*t);
-    return (u / norm, v / norm, w / norm);
+    // (u * inv_l, v * inv_l, w * inv_l) is uniformly distributed on the unit sphere
+    (inv_l * Vec3(u, v, w)).into()
 }
 
 #[cfg(test)]

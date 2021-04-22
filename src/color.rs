@@ -1,4 +1,4 @@
-use std::ops::{Add, Mul, AddAssign, Div};
+use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Sub, SubAssign};
 
 #[derive(Clone, Copy, Debug, PartialEq, Default)]
 pub struct Color(pub f32, pub f32, pub f32);
@@ -32,26 +32,62 @@ impl AddAssign<Color> for Color {
     }
 }
 
+impl SubAssign<Color> for Color {
+    fn sub_assign(&mut self, rhs: Self) {
+        self.0 -= rhs.0;
+        self.1 -= rhs.1;
+        self.2 -= rhs.2;
+    }
+}
+
+impl MulAssign<f32> for Color {
+    fn mul_assign(&mut self, rhs: f32) {
+        self.0 *= rhs;
+        self.1 *= rhs;
+        self.2 *= rhs;
+    }
+}
+
+impl DivAssign<f32> for Color {
+    fn div_assign(&mut self, rhs: f32) {
+        self.0 /= rhs;
+        self.1 /= rhs;
+        self.2 /= rhs;
+    }
+}
+
 impl Add<Color> for Color {
     type Output = Color;
 
-    fn add(self, rhs: Self) -> Self::Output {
-        Color(self.0 + rhs.0, self.1 + rhs.1, self.2 + rhs.2)
+    fn add(mut self, rhs: Self) -> Self::Output {
+        self += rhs;
+        self
+    }
+}
+
+impl Sub<Color> for Color {
+    type Output = Color;
+
+    fn sub(mut self, rhs: Self) -> Self::Output {
+        self -= rhs;
+        self
     }
 }
 
 impl Mul<Color> for f32 {
     type Output = Color;
 
-    fn mul(self, rhs: Color) -> Self::Output {
-        Color(rhs.0 * self, rhs.1 * self, rhs.2 * self)
+    fn mul(self, mut rhs: Color) -> Self::Output {
+        rhs *= self;
+        rhs
     }
 }
 
 impl Div<f32> for Color {
     type Output = Color;
 
-    fn div(self, rhs: f32) -> Self::Output {
-        Color(self.0 / rhs, self.1 / rhs, self.2 / rhs)
+    fn div(mut self, rhs: f32) -> Self::Output {
+        self /= rhs;
+        self
     }
 }

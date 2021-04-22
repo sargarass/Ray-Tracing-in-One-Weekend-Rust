@@ -18,14 +18,19 @@ use crate::hittable_vec::HittableVec;
 use crate::point::Point3;
 use crate::ray::Ray;
 use crate::sphere::Sphere;
-use crate::vector::{Normalize, Vec3, random_in_unit_circle};
+use crate::vector::{uniform_on_unit_sphere, Normalize, Vec3};
 use rand::distributions::{Distribution, Uniform};
 
-fn ray_color(world: &HittableVec, r: &Ray) -> Color {
-    match world.hit(*r, 0.000001, f32::MAX) {
+fn ray_color(world: &HittableVec, r: &Ray, depth: u32) -> Color {
+    if depth == 0 {
+        return Color::zero();
+    }
+
+    match world.hit(*r, 1e-3, f32::MAX) {
         Some(hit) => {
-            let n = hit.n;
-            0.5 * Color(n.x() + 1.0, n.y() + 1.0, n.z() + 1.0)
+            let (u, v, w) = uniform_on_unit_sphere(&mut rand::thread_rng());
+            let target = hit.p + hit.n + Vec3(u, v, w);
+            0.5 * ray_color(world, &Ray::new(hit.p, target - hit.p), depth - 1)
         }
         None => {
             let unit_dir = Vec3::normalize(r.dir);
@@ -37,8 +42,9 @@ fn ray_color(world: &HittableVec, r: &Ray) -> Color {
 
 fn main() -> Result<(), Box<dyn Error>> {
     // image
-    let samples_per_pixel = 25;
-    let aspect_ratio = 21.0 / 9.0;
+    let samples_per_pixel = 100;
+    let depth = 50;
+    let aspect_ratio = 16.0 / 9.0;
     let image_width = 400;
     let image_height = (image_width as f32 / aspect_ratio) as i32;
 
@@ -77,14 +83,14 @@ fn main() -> Result<(), Box<dyn Error>> {
 
                 let r = camera.get_ray(u, v);
 
-                pixel_color += ray_color(&world, &r);
+                pixel_color += ray_color(&world, &r, depth);
             }
 
-            pixel_color = pixel_color / samples_per_pixel as f32;
-
-            let ir = (255.999 * f32::clamp(pixel_color.r(), 0.0, 0.999)) as u8;
-            let ig = (255.999 * f32::clamp(pixel_color.g(), 0.0, 0.999)) as u8;
-            let ib = (255.999 * f32::clamp(pixel_color.b(), 0.0, 0.999)) as u8;
+            // Divide the color by the number of samples and gamma-correct for gamma=2.0.
+            pixel_color /= samples_per_pixel as f32;
+            let ir = (256.0 * f32::clamp(f32::sqrt(pixel_color.r()), 0.0, 0.999)) as u8;
+            let ig = (256.0 * f32::clamp(f32::sqrt(pixel_color.g()), 0.0, 0.999)) as u8;
+            let ib = (256.0 * f32::clamp(f32::sqrt(pixel_color.b()), 0.0, 0.999)) as u8;
             file.write_all(format!("{} {} {}\n", ir, ig, ib).as_bytes())?;
         }
     }
