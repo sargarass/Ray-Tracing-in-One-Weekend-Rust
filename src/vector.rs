@@ -1,5 +1,6 @@
-use rand::distributions::{Distribution, Standard};
+use rand::distributions::{Distribution};
 use rand::Rng;
+use rand_distr::StandardNormal;
 use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 
 pub trait Dot: Sized + Copy {
@@ -151,14 +152,14 @@ impl Cross for Vec3 {
 pub fn uniform_in_unit_sphere<R: Rng>(rng: &mut R) -> (f32, f32, f32) {
     // Let d = 5
     // Compute d random numbers with the Normal Distribution
-    let distribution = Standard;
-    let u = 2.0 * Distribution::<f32>::sample(&distribution, rng) - 1.0;
-    let v = 2.0 * Distribution::<f32>::sample(&distribution, rng) - 1.0;
-    let w = 2.0 * Distribution::<f32>::sample(&distribution, rng) - 1.0;
-    let s = 2.0 * Distribution::<f32>::sample(&distribution, rng) - 1.0;
-    let t = 2.0 * Distribution::<f32>::sample(&distribution, rng) - 1.0;
+    let distribution = StandardNormal;
+    let u: f32 = distribution.sample(rng);
+    let v: f32 = distribution.sample(rng);
+    let w: f32 = distribution.sample(rng);
+    let s: f32 = distribution.sample(rng);
+    let t: f32 = distribution.sample(rng);
     // According to Muller, Marsaglia there is a relationship between a d-ball and the Normal Distribution:
-    // let u, ... t ~ N(-1,1) aka has the Normal Distribution, and l = sqrt(u^2 + ... t^2)
+    // let u, ... t ~ N(0,1) aka has the Normal Distribution, and l = sqrt(u^2 + ... t^2)
     // then (u / l, ..., t / l) is uniformly distributed on a unit d-ball
 
     // inv_l = 1 / l
@@ -172,10 +173,10 @@ pub fn uniform_in_unit_sphere<R: Rng>(rng: &mut R) -> (f32, f32, f32) {
 
 pub fn uniform_on_unit_sphere<R: Rng>(rng: &mut R) -> (f32, f32, f32) {
     // Use the same trick as in fn uniform_in_unit_sphere
-    let distribution = Standard;
-    let u = 2.0 * Distribution::<f32>::sample(&distribution, rng) - 1.0;
-    let v = 2.0 * Distribution::<f32>::sample(&distribution, rng) - 1.0;
-    let w = 2.0 * Distribution::<f32>::sample(&distribution, rng) - 1.0;
+    let distribution = StandardNormal;
+    let u = distribution.sample(rng);
+    let v = distribution.sample(rng);
+    let w = distribution.sample(rng);
     let inv_l = f32::recip(f32::sqrt(u * u + v * v + w * w));
 
     // (u * inv_l, v * inv_l, w * inv_l) is uniformly distributed on the unit sphere

@@ -6,6 +6,7 @@ mod point;
 mod ray;
 mod sphere;
 mod vector;
+mod material;
 
 use std::error::Error;
 use std::fs;
