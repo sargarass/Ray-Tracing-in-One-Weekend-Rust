@@ -1,7 +1,8 @@
 use crate::color::Color;
 use crate::hittable::Hit;
 use crate::ray::Ray;
-use crate::vector::{uniform_on_unit_sphere, Dot, Len, Normalize, Vec3};
+use crate::vector::{uniform_on_unit_sphere, Dot, Len, Normalize, Vec3, uniform_in_unit_sphere};
+use rand::thread_rng;
 
 pub trait Scatterable {
     fn scatter(&self, r_in: &Ray, hit: &Hit) -> Option<(Color, Ray)>;
@@ -31,11 +32,12 @@ impl Scatterable for Lambertian {
 
 pub struct Metal {
     albedo: Color,
+    fuzz: f32,
 }
 
 impl Metal {
-    pub fn new(albedo: Color) -> Self {
-        Self { albedo }
+    pub fn new(albedo: Color, fuzz: f32) -> Self {
+        Self { albedo, fuzz }
     }
 }
 
@@ -47,7 +49,7 @@ fn reflect(v: Vec3, n: Vec3) -> Vec3 {
 impl Scatterable for Metal {
     fn scatter(&self, r_in: &Ray, hit: &Hit) -> Option<(Color, Ray)> {
         let reflected = reflect(Vec3::normalize(r_in.dir), hit.n);
-        let scattered = Ray::new(hit.p, reflected);
+        let scattered = Ray::new(hit.p, reflected + self.fuzz * Vec3::from(uniform_in_unit_sphere(&mut thread_rng())));
         if Vec3::dot(scattered.dir, hit.n) <= 0.0 {
             return None;
         }
