@@ -1,4 +1,4 @@
-use rand::distributions::{Distribution};
+use rand::distributions::Distribution;
 use rand::Rng;
 use rand_distr::StandardNormal;
 use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
@@ -35,6 +35,12 @@ pub struct Vec3(pub f32, pub f32, pub f32);
 impl From<Vec3> for (f32, f32, f32) {
     fn from(v: Vec3) -> Self {
         (v.0, v.1, v.2)
+    }
+}
+
+impl From<(f32, f32, f32)> for Vec3 {
+    fn from(v: (f32, f32, f32)) -> Vec3 {
+        Vec3(v.0, v.1, v.2)
     }
 }
 

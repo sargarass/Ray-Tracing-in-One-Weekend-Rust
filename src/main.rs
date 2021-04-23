@@ -6,7 +6,6 @@ mod point;
 mod ray;
 mod sphere;
 mod vector;
-mod material;
 
 use std::error::Error;
 use std::fs;
@@ -19,8 +18,18 @@ use crate::hittable_vec::HittableVec;
 use crate::point::Point3;
 use crate::ray::Ray;
 use crate::sphere::Sphere;
-use crate::vector::{uniform_on_unit_sphere, Normalize, Vec3};
+use crate::vector::{uniform_on_unit_sphere, Dot, Normalize, Vec3};
 use rand::distributions::{Distribution, Uniform};
+
+fn random_in_hemisphere(normal: Vec3) -> Vec3 {
+    let in_unit_sphere: Vec3 = uniform_on_unit_sphere(&mut rand::thread_rng()).into();
+
+    if Vec3::dot(in_unit_sphere, normal) > 0.0 {
+        in_unit_sphere
+    } else {
+        -in_unit_sphere
+    }
+}
 
 fn ray_color(world: &HittableVec, r: &Ray, depth: u32) -> Color {
     if depth == 0 {
@@ -29,8 +38,7 @@ fn ray_color(world: &HittableVec, r: &Ray, depth: u32) -> Color {
 
     match world.hit(*r, 1e-3, f32::MAX) {
         Some(hit) => {
-            let (u, v, w) = uniform_on_unit_sphere(&mut rand::thread_rng());
-            let target = hit.p + hit.n + Vec3(u, v, w);
+            let target = hit.p + random_in_hemisphere(hit.n);
             0.5 * ray_color(world, &Ray::new(hit.p, target - hit.p), depth - 1)
         }
         None => {
