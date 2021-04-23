@@ -2,6 +2,7 @@ mod camera;
 mod color;
 mod hittable;
 mod hittable_vec;
+mod material;
 mod point;
 mod ray;
 mod sphere;
@@ -15,11 +16,13 @@ use crate::camera::Camera;
 use crate::color::Color;
 use crate::hittable::Hittable;
 use crate::hittable_vec::HittableVec;
+use crate::material::{Lambertian, Metal};
 use crate::point::Point3;
 use crate::ray::Ray;
 use crate::sphere::Sphere;
 use crate::vector::{uniform_on_unit_sphere, Dot, Normalize, Vec3};
 use rand::distributions::{Distribution, Uniform};
+use std::rc::Rc;
 
 fn random_in_hemisphere(normal: Vec3) -> Vec3 {
     let in_unit_sphere: Vec3 = uniform_on_unit_sphere(&mut rand::thread_rng()).into();
@@ -35,17 +38,16 @@ fn ray_color(world: &HittableVec, r: &Ray, depth: u32) -> Color {
     if depth == 0 {
         return Color::zero();
     }
-
-    match world.hit(*r, 1e-3, f32::MAX) {
-        Some(hit) => {
-            let target = hit.p + random_in_hemisphere(hit.n);
-            0.5 * ray_color(world, &Ray::new(hit.p, target - hit.p), depth - 1)
+    if let Some((hit, mat)) = world.hit(r, 1e-3, f32::MAX) {
+        if let Some((attenuation, scattered)) = mat.scatter(r, &hit) {
+            attenuation * ray_color(world, &scattered, depth - 1)
+        } else {
+            Color::zero()
         }
-        None => {
-            let unit_dir = Vec3::normalize(r.dir);
-            let t = 0.5 * (unit_dir.y() + 1.0);
-            Color::lerp(Color(1.0, 1.0, 1.0), Color(0.5, 0.7, 1.0), t)
-        }
+    } else {
+        let unit_dir = Vec3::normalize(r.dir);
+        let t = 0.5 * (unit_dir.y() + 1.0);
+        Color::lerp(Color(1.0, 1.0, 1.0), Color(0.5, 0.7, 1.0), t)
     }
 }
 
@@ -54,7 +56,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let samples_per_pixel = 100;
     let depth = 50;
     let aspect_ratio = 16.0 / 9.0;
-    let image_width = 400;
+    let image_width = 1600;
     let image_height = (image_width as f32 / aspect_ratio) as i32;
 
     let camera = Camera::new(
@@ -75,9 +77,32 @@ fn main() -> Result<(), Box<dyn Error>> {
     file.write_all(format!("P3\n{} {}\n255\n", image_width, image_height).as_bytes())?;
     // from image_height - 1 to 0
 
+    let material_ground = Rc::new(Lambertian::new(Color(0.8, 0.8, 0.0)));
+    let material_center = Rc::new(Lambertian::new(Color(0.7, 0.3, 0.3)));
+    let material_left = Rc::new(Metal::new(Color(0.8, 0.8, 0.8)));
+    let material_right = Rc::new(Metal::new(Color(0.8, 0.6, 0.2)));
+
     let mut world = HittableVec::new();
-    world.push(Box::new(Sphere::new(Point3(0.0, 0.0, -1.0), 0.5)));
-    world.push(Box::new(Sphere::new(Point3(0.0, -100.5, -1.0), 100.0)));
+    world.push(Box::new(Sphere::new(
+        Point3(0.0, -100.5, -1.0),
+        100.0,
+        material_ground,
+    )));
+    world.push(Box::new(Sphere::new(
+        Point3(0.0, 0.0, -1.0),
+        0.5,
+        material_center,
+    )));
+    world.push(Box::new(Sphere::new(
+        Point3(-1.0, 0.0, -1.0),
+        0.5,
+        material_left,
+    )));
+    world.push(Box::new(Sphere::new(
+        Point3(1.0, 0.0, -1.0),
+        0.5,
+        material_right,
+    )));
 
     let mut rng = rand::thread_rng();
     let distribution = Uniform::from(-0.5..=0.5);

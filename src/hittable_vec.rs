@@ -1,4 +1,5 @@
 use crate::hittable::{Hit, Hittable};
+use crate::material::Scatterable;
 use crate::ray::Ray;
 use std::ops::{Deref, DerefMut};
 
@@ -21,13 +22,13 @@ impl DerefMut for HittableVec {
 }
 
 impl Hittable for HittableVec {
-    fn hit(&self, r: Ray, t_min: f32, t_max: f32) -> Option<Hit> {
+    fn hit(&self, r: &Ray, t_min: f32, t_max: f32) -> Option<(Hit, &dyn Scatterable)> {
         let mut t_closest = t_max;
-        let mut hit_closest: Option<Hit> = None;
+        let mut hit_closest: Option<(Hit, &dyn Scatterable)> = None;
         for h in self.inner.iter() {
-            if let Some(hit) = h.hit(r, t_min, t_closest) {
+            if let Some((hit, mat)) = h.hit(r, t_min, t_closest) {
                 t_closest = hit.t;
-                hit_closest = Some(hit);
+                hit_closest = Some((hit, mat));
             }
         }
         hit_closest

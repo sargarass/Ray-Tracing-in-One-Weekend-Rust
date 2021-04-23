@@ -48,6 +48,14 @@ impl MulAssign<f32> for Color {
     }
 }
 
+impl MulAssign<Color> for Color {
+    fn mul_assign(&mut self, rhs: Color) {
+        self.0 *= rhs.0;
+        self.1 *= rhs.1;
+        self.2 *= rhs.2;
+    }
+}
+
 impl DivAssign<f32> for Color {
     fn div_assign(&mut self, rhs: f32) {
         self.0 /= rhs;
@@ -77,6 +85,14 @@ impl Sub<Color> for Color {
 impl Mul<Color> for f32 {
     type Output = Color;
 
+    fn mul(self, mut rhs: Color) -> Self::Output {
+        rhs *= self;
+        rhs
+    }
+}
+
+impl Mul<Color> for Color {
+    type Output = Color;
     fn mul(self, mut rhs: Color) -> Self::Output {
         rhs *= self;
         rhs
