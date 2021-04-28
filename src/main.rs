@@ -16,23 +16,13 @@ use crate::camera::Camera;
 use crate::color::Color;
 use crate::hittable::Hittable;
 use crate::hittable_vec::HittableVec;
-use crate::material::{Lambertian, Metal};
+use crate::material::{Dielectric, Lambertian, Metal};
 use crate::point::Point3;
 use crate::ray::Ray;
 use crate::sphere::Sphere;
-use crate::vector::{uniform_on_unit_sphere, Dot, Normalize, Vec3};
+use crate::vector::Vec3;
 use rand::distributions::{Distribution, Uniform};
 use std::rc::Rc;
-
-fn random_in_hemisphere(normal: Vec3) -> Vec3 {
-    let in_unit_sphere: Vec3 = uniform_on_unit_sphere(&mut rand::thread_rng()).into();
-
-    if Vec3::dot(in_unit_sphere, normal) > 0.0 {
-        in_unit_sphere
-    } else {
-        -in_unit_sphere
-    }
-}
 
 fn ray_color(world: &HittableVec, r: &Ray, depth: u32) -> Color {
     if depth == 0 {
@@ -45,8 +35,7 @@ fn ray_color(world: &HittableVec, r: &Ray, depth: u32) -> Color {
             Color::zero()
         }
     } else {
-        let unit_dir = Vec3::normalize(r.dir);
-        let t = 0.5 * (unit_dir.y() + 1.0);
+        let t = 0.5 * (r.dir.y() + 1.0);
         Color::lerp(Color(1.0, 1.0, 1.0), Color(0.5, 0.7, 1.0), t)
     }
 }
@@ -54,9 +43,9 @@ fn ray_color(world: &HittableVec, r: &Ray, depth: u32) -> Color {
 fn main() -> Result<(), Box<dyn Error>> {
     // image
     let samples_per_pixel = 100;
-    let depth = 50;
+    let depth = 100;
     let aspect_ratio = 16.0 / 9.0;
-    let image_width = 1600;
+    let image_width = 400;
     let image_height = (image_width as f32 / aspect_ratio) as i32;
 
     let camera = Camera::new(
@@ -78,9 +67,9 @@ fn main() -> Result<(), Box<dyn Error>> {
     // from image_height - 1 to 0
 
     let material_ground = Rc::new(Lambertian::new(Color(0.8, 0.8, 0.0)));
-    let material_center = Rc::new(Lambertian::new(Color(0.7, 0.3, 0.3)));
-    let material_left = Rc::new(Metal::new(Color(0.8, 0.8, 0.8), 0.3));
-    let material_right = Rc::new(Metal::new(Color(0.8, 0.6, 0.2), 1.0));
+    let material_center = Rc::new(Lambertian::new(Color(0.1, 0.2, 0.5)));
+    let material_left = Rc::new(Dielectric::new(1.5));
+    let material_right = Rc::new(Metal::new(Color(0.8, 0.6, 0.2), 0.0));
 
     let mut world = HittableVec::new();
     world.push(Box::new(Sphere::new(
@@ -95,8 +84,13 @@ fn main() -> Result<(), Box<dyn Error>> {
     )));
     world.push(Box::new(Sphere::new(
         Point3(-1.0, 0.0, -1.0),
-        0.5,
-        material_left,
+        0.5, 
+        material_left.clone(),
+    )));
+    world.push(Box::new(Sphere::new(
+        Point3(-1.0, 0.0, -1.0),
+        -0.4, 
+        material_left.clone(),
     )));
     world.push(Box::new(Sphere::new(
         Point3(1.0, 0.0, -1.0),

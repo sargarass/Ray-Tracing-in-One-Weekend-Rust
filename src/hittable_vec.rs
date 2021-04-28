@@ -27,7 +27,7 @@ impl Hittable for HittableVec {
         let mut hit_closest: Option<(Hit, &dyn Scatterable)> = None;
         for h in self.inner.iter() {
             if let Some((hit, mat)) = h.hit(r, t_min, t_closest) {
-                t_closest = hit.t;
+                t_closest = hit.t();
                 hit_closest = Some((hit, mat));
             }
         }

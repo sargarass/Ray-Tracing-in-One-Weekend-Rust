@@ -7,19 +7,16 @@ pub trait Dot: Sized + Copy {
     fn dot(self, w: Self) -> f32;
 }
 
-pub trait Norm: Sized + Copy + Dot {
-    fn norm(self) -> f32 {
+pub trait Len: Sized + Copy + Dot {
+    fn len(self) -> f32 {
+        self.len_squared().sqrt()
+    }
+    fn len_squared(self) -> f32 {
         self.dot(self)
     }
 }
 
-pub trait Len: Sized + Copy + Norm + Dot {
-    fn len(self) -> f32 {
-        self.norm().sqrt()
-    }
-}
-
-pub trait Normalize: Sized + Copy + Len + Norm + Dot + std::ops::Div<f32, Output = Self> {
+pub trait Normalize: Sized + Copy + Len + Dot + std::ops::Div<f32, Output = Self> {
     fn normalize(self) -> Self {
         self.div(self.len())
     }
@@ -57,6 +54,10 @@ impl Vec3 {
 
     pub fn zero() -> Self {
         Vec3(0.0, 0.0, 0.0)
+    }
+
+    pub fn almost_eq(lsh: Vec3, rhs: Vec3, eps: f32) -> bool {
+        Vec3::len(lsh - rhs) < eps
     }
 }
 
@@ -138,8 +139,6 @@ impl Div<f32> for Vec3 {
     }
 }
 
-impl Norm for Vec3 {}
-
 impl Len for Vec3 {}
 
 impl Normalize for Vec3 {}
@@ -194,7 +193,23 @@ mod tests {
     use super::*;
 
     #[test]
-    fn vector_add() {
+    fn vec3_zero() {
+        let a = Vec3::zero();
+        assert_eq!(a.0, 0.0);
+        assert_eq!(a.1, 0.0);
+        assert_eq!(a.2, 0.0);
+    }
+
+    #[test]
+    fn vec3_xyz() {
+        let a = Vec3(1.0, 2.0, 3.0);
+        assert_eq!(a.x(), a.0);
+        assert_eq!(a.y(), a.1);
+        assert_eq!(a.z(), a.2);
+    }
+
+    #[test]
+    fn vec3_add() {
         let a = Vec3(1.0, 2.0, 3.0);
         let b = Vec3(-1.0, -2.0, -3.0);
 
@@ -202,7 +217,7 @@ mod tests {
     }
 
     #[test]
-    fn vector_sub() {
+    fn vec3_sub() {
         let a = Vec3(1.0, 2.0, 3.0);
         let b = Vec3(1.0, 2.0, 3.0);
 
@@ -210,37 +225,37 @@ mod tests {
     }
 
     #[test]
-    fn vector_neg() {
+    fn vec3_neg() {
         let a = Vec3(1.0, 2.0, 3.0);
         assert_eq!(-a, Vec3(-1.0, -2.0, -3.0));
     }
 
     #[test]
-    fn vector_mul() {
+    fn vec3_mul() {
         let a = Vec3(1.0, 2.0, 3.0);
         assert_eq!(5.0 * a, Vec3(5.0, 10.0, 15.0));
     }
 
     #[test]
-    fn vector_norm() {
+    fn vec3_len_squared() {
         let a = Vec3(1.0, 2.0, 3.0);
-        assert_eq!(a.norm(), 14.0);
+        assert_eq!(a.len_squared(), 14.0);
     }
 
     #[test]
-    fn vector_len() {
+    fn vec3_len() {
         let a = Vec3(4.0, 4.0, 2.0);
         assert_eq!(a.len(), 6.0);
     }
 
     #[test]
-    fn vector_dot() {
+    fn vec3_dot() {
         let a = Vec3(4.0, 4.0, 2.0);
         assert_eq!(Vec3::dot(a, a), 36.0);
     }
 
     #[test]
-    fn vector_normalize() {
+    fn vec3_normalize() {
         let a = Vec3(4.0, 4.0, 2.0);
         assert_eq!(a.normalize(), Vec3(4.0 / 6.0, 4.0 / 6.0, 2.0 / 6.0));
     }

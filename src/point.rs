@@ -70,6 +70,21 @@ impl Sub<Vec3> for Point3 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn point3_zero() {
+        let a = Point3::zero();
+        assert_eq!(a.0, 0.0);
+        assert_eq!(a.1, 0.0);
+        assert_eq!(a.2, 0.0);
+    }
+
+    #[test]
+    fn point3_xyz() {
+        let a = Point3(1.0, 2.0, 3.0);
+        assert_eq!(a.x(), a.0);
+        assert_eq!(a.y(), a.1);
+        assert_eq!(a.z(), a.2);
+    }
 
     #[test]
     fn point3_add() {
