@@ -20,7 +20,7 @@ use crate::material::{Dielectric, Lambertian, Metal};
 use crate::point::Point3;
 use crate::ray::Ray;
 use crate::sphere::Sphere;
-use crate::vector::Vec3;
+use crate::vector::{Len, Vec3};
 use rand::distributions::{Distribution, Uniform};
 use std::rc::Rc;
 
@@ -48,12 +48,19 @@ fn main() -> Result<(), Box<dyn Error>> {
     let image_width = 400;
     let image_height = (image_width as f32 / aspect_ratio) as i32;
 
+    let look_from = Point3(3.0, 3.0, 2.0);
+    let look_at = Point3(0.0, 0.0, -1.0);
+    let vup = Vec3(0.0, 1.0, 0.0);
+    let dist_to_focus = (look_from - look_at).len();
+    let aperture = 2.0;
     let camera = Camera::new(
-        Point3(0.0, 0.0, 0.0),
-        Point3(0.0, 0.0, -1.0),
-        Vec3(0.0, 1.0, 0.0),
-        90.0,
+        look_from,
+        look_at,
+        vup,
+        20.0,
         aspect_ratio,
+        aperture,
+        dist_to_focus,
     );
 
     // render
@@ -84,13 +91,13 @@ fn main() -> Result<(), Box<dyn Error>> {
     )));
     world.push(Box::new(Sphere::new(
         Point3(-1.0, 0.0, -1.0),
-        0.5, 
+        0.5,
         material_left.clone(),
     )));
     world.push(Box::new(Sphere::new(
         Point3(-1.0, 0.0, -1.0),
-        -0.4, 
-        material_left.clone(),
+        -0.45,
+        material_left,
     )));
     world.push(Box::new(Sphere::new(
         Point3(1.0, 0.0, -1.0),

@@ -188,6 +188,19 @@ pub fn uniform_on_unit_sphere<R: Rng>(rng: &mut R) -> (f32, f32, f32) {
     (inv_l * Vec3(u, v, w)).into()
 }
 
+pub fn uniform_in_unit_disk<R: Rng>(rng: &mut R) -> (f32, f32) {
+    // Use the same trick as in fn uniform_in_unit_sphere
+    let distribution = StandardNormal;
+    let u: f32 = distribution.sample(rng);
+    let v: f32 = distribution.sample(rng);
+    let w: f32 = distribution.sample(rng);
+    let s: f32 = distribution.sample(rng);
+    let inv_l = f32::recip(f32::sqrt(u * u + v * v + w * w + s * s));
+
+    // (u * inv_l, v * inv_l) is uniformly distributed in the disk
+    (inv_l * u, inv_l * v)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

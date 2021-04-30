@@ -3,7 +3,7 @@ use crate::hittable::Hit;
 use crate::ray::Ray;
 use crate::vector::{uniform_in_unit_sphere, uniform_on_unit_sphere, Dot, Len, Normalize, Vec3};
 use rand::thread_rng;
-use rand_distr::num_traits::{Pow, clamp};
+use rand_distr::num_traits::{clamp, Pow};
 
 pub trait Scatterable {
     fn scatter(&self, r_in: &Ray, hit: &Hit) -> Option<(Color, Ray)>;
@@ -93,10 +93,7 @@ fn refract(uv: Vec3, un: Vec3, refraction_ratio: f32) -> Option<Vec3> {
         Vec3::almost_eq(un.normalize(), un, 1e-5),
         "unit_normal must be a unit vector"
     );
-    assert!(
-        Vec3::dot(uv, un) <= 0.0,
-        "uv must be on same side with un"
-    );
+    assert!(Vec3::dot(uv, un) <= 0.0, "uv must be on same side with un");
 
     let cos_theta = clamp(Vec3::dot(-uv, un), -1.0, 1.0);
     let sin_theta = f32::sqrt(1.0 - cos_theta * cos_theta);
