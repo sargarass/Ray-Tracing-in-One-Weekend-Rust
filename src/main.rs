@@ -22,6 +22,7 @@ use crate::ray::Ray;
 use crate::sphere::Sphere;
 use crate::vector::{Len, Vec3};
 use rand::distributions::{Distribution, Uniform};
+use rand::Rng;
 use std::rc::Rc;
 
 fn ray_color(world: &HittableVec, r: &Ray, depth: u32) -> Color {
@@ -40,19 +41,77 @@ fn ray_color(world: &HittableVec, r: &Ray, depth: u32) -> Color {
     }
 }
 
+fn random_scene() -> hittable_vec::HittableVec {
+    let mut world = HittableVec::new();
+
+    world.push(Box::new(Sphere::new(
+        Point3(0.0, -1000.0, 0.0),
+        1000.0,
+        Rc::new(Lambertian::new(Color(0.5, 0.5, 0.5))),
+    )));
+
+    let mut rng = rand::thread_rng();
+    let distribution = rand::distributions::Standard;
+    for a in -11..11 {
+        for b in -11..11 {
+            let a = a as f32;
+            let b = b as f32;
+            let choose_mat: f32 = distribution.sample(&mut rng);
+            let (dx, dy): (f32, f32) =
+                (distribution.sample(&mut rng), distribution.sample(&mut rng));
+            let center = Point3(a + 0.9 * dx, 0.2, b + 0.9 * dy);
+            if (center - Point3(4.0, 0.2, 0.0)).len() > 0.9 {
+                if choose_mat < 0.8 {
+                    // diffuse
+                    let albedo = Color::random(&mut rng) * Color::random(&mut rng);
+                    let material = Rc::new(Lambertian::new(albedo));
+                    world.push(Box::new(Sphere::new(center, 0.2, material)));
+                } else if choose_mat < 0.95 {
+                    // metal
+                    let albedo = Color::random_minmax(&mut rng, 0.5, 1.0);
+                    let fuzz = rng.gen_range(0.0..0.5);
+                    let material = Rc::new(Metal::new(albedo, fuzz));
+                    world.push(Box::new(Sphere::new(center, 0.2, material)));
+                } else {
+                    // glass
+                    let material = Rc::new(Dielectric::new(1.5));
+                    world.push(Box::new(Sphere::new(center, 0.2, material)));
+                }
+            }
+        }
+    }
+
+    world.push(Box::new(Sphere::new(
+        Point3(0.0, 1.0, 0.0),
+        1.0,
+        Rc::new(Dielectric::new(1.5)),
+    )));
+    world.push(Box::new(Sphere::new(
+        Point3(-4.0, 1.0, 0.0),
+        1.0,
+        Rc::new(Lambertian::new(Color(0.4, 0.2, 0.1))),
+    )));
+    world.push(Box::new(Sphere::new(
+        Point3(4.0, 1.0, 0.0),
+        1.0,
+        Rc::new(Metal::new(Color(0.7, 0.6, 0.5), 0.0)),
+    )));
+    world
+}
+
 fn main() -> Result<(), Box<dyn Error>> {
     // image
-    let samples_per_pixel = 100;
-    let depth = 100;
-    let aspect_ratio = 16.0 / 9.0;
-    let image_width = 400;
+    let samples_per_pixel = 500;
+    let depth = 50;
+    let aspect_ratio = 3.0 / 2.0;
+    let image_width = 1200;
     let image_height = (image_width as f32 / aspect_ratio) as i32;
 
-    let look_from = Point3(3.0, 3.0, 2.0);
-    let look_at = Point3(0.0, 0.0, -1.0);
+    let look_from = Point3(13.0, 2.0, 3.0);
+    let look_at = Point3(0.0, 0.0, 0.0);
     let vup = Vec3(0.0, 1.0, 0.0);
-    let dist_to_focus = (look_from - look_at).len();
-    let aperture = 2.0;
+    let dist_to_focus = 10.0;
+    let aperture = 0.1;
     let camera = Camera::new(
         look_from,
         look_at,
@@ -73,38 +132,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     file.write_all(format!("P3\n{} {}\n255\n", image_width, image_height).as_bytes())?;
     // from image_height - 1 to 0
 
-    let material_ground = Rc::new(Lambertian::new(Color(0.8, 0.8, 0.0)));
-    let material_center = Rc::new(Lambertian::new(Color(0.1, 0.2, 0.5)));
-    let material_left = Rc::new(Dielectric::new(1.5));
-    let material_right = Rc::new(Metal::new(Color(0.8, 0.6, 0.2), 0.0));
-
-    let mut world = HittableVec::new();
-    world.push(Box::new(Sphere::new(
-        Point3(0.0, -100.5, -1.0),
-        100.0,
-        material_ground,
-    )));
-    world.push(Box::new(Sphere::new(
-        Point3(0.0, 0.0, -1.0),
-        0.5,
-        material_center,
-    )));
-    world.push(Box::new(Sphere::new(
-        Point3(-1.0, 0.0, -1.0),
-        0.5,
-        material_left.clone(),
-    )));
-    world.push(Box::new(Sphere::new(
-        Point3(-1.0, 0.0, -1.0),
-        -0.45,
-        material_left,
-    )));
-    world.push(Box::new(Sphere::new(
-        Point3(1.0, 0.0, -1.0),
-        0.5,
-        material_right,
-    )));
-
+    let world = random_scene();
     let mut rng = rand::thread_rng();
     let distribution = Uniform::from(-0.5..=0.5);
     for j in (0..image_height).rev() {
@@ -116,7 +144,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 let u = (i as f32 + di) / (image_width - 1) as f32;
                 let v = (j as f32 + dj) / (image_height - 1) as f32;
 
-                let r = camera.get_ray(u, v);
+                let r = camera.get_ray(&mut rng,u, v);
 
                 pixel_color += ray_color(&world, &r, depth);
             }

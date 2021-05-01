@@ -3,7 +3,6 @@ use crate::hittable::Hit;
 use crate::ray::Ray;
 use crate::vector::{uniform_in_unit_sphere, uniform_on_unit_sphere, Dot, Len, Normalize, Vec3};
 use rand::thread_rng;
-use rand_distr::num_traits::{clamp, Pow};
 
 pub trait Scatterable {
     fn scatter(&self, r_in: &Ray, hit: &Hit) -> Option<(Color, Ray)>;
@@ -21,7 +20,7 @@ impl Lambertian {
 
 impl Scatterable for Lambertian {
     fn scatter(&self, _: &Ray, hit: &Hit) -> Option<(Color, Ray)> {
-        let mut scatter_dir = hit.n() + uniform_on_unit_sphere(&mut rand::thread_rng()).into();
+        let mut scatter_dir = hit.n() + uniform_on_unit_sphere(&mut thread_rng()).into();
         if scatter_dir.len() < 1e-7 {
             scatter_dir = hit.n();
         }
@@ -42,17 +41,17 @@ impl Metal {
     }
 }
 
-fn reflect(v: Vec3, unit_normal: Vec3) -> Vec3 {
+fn reflect(v: Vec3, un: Vec3) -> Vec3 {
     assert!(
-        Vec3::almost_eq(unit_normal.normalize(), unit_normal, 1e-5),
-        "unit_normal must be a unit vector"
+        Vec3::almost_eq(un.normalize(), un, 1e-5),
+        "un must be a unit vector"
     );
     assert!(
-        Vec3::dot(v, unit_normal) <= 0.0,
-        "v and unit_normal must be on a same side"
+        Vec3::dot(v, un) <= 0.0,
+        "v, un must be on a same side"
     );
 
-    v - 2.0 * Vec3::dot(v, unit_normal) * unit_normal
+    v - 2.0 * Vec3::dot(v, un) * un
 }
 
 impl Scatterable for Metal {
@@ -91,11 +90,11 @@ impl Dielectric {
 fn refract(uv: Vec3, un: Vec3, refraction_ratio: f32) -> Option<Vec3> {
     assert!(
         Vec3::almost_eq(un.normalize(), un, 1e-5),
-        "unit_normal must be a unit vector"
+        "un must be a unit vector"
     );
-    assert!(Vec3::dot(uv, un) <= 0.0, "uv must be on same side with un");
+    assert!(Vec3::dot(uv, un) <= 0.0, "uv, un must be on same side");
 
-    let cos_theta = clamp(Vec3::dot(-uv, un), -1.0, 1.0);
+    let cos_theta = f32::clamp(Vec3::dot(-uv, un), -1.0, 1.0);
     let sin_theta = f32::sqrt(1.0 - cos_theta * cos_theta);
     if refraction_ratio * sin_theta > 1.0 {
         return None;
@@ -110,7 +109,7 @@ fn reflectance(cosine: f32, index_of_refraction: f32) -> f32 {
     // Use Schlick's approximation for reflectance.
     let mut r0 = (1.0 - index_of_refraction) / (1.0 + index_of_refraction);
     r0 = r0 * r0;
-    r0 + (1.0 - r0) * f32::pow(1.0 - cosine, 5)
+    r0 + (1.0 - r0) * f32::powi(1.0 - cosine, 5)
 }
 
 impl Scatterable for Dielectric {
@@ -122,7 +121,7 @@ impl Scatterable for Dielectric {
         };
 
         let attenuation = Color(1.0, 1.0, 1.0);
-        let cos_theta = clamp(Vec3::dot(-r_in.dir, hit.n()), -1.0, 1.0);
+        let cos_theta = f32::clamp(Vec3::dot(-r_in.dir, hit.n()), -1.0, 1.0);
 
         let direction =
             // Depending on the refraction ratio, the light might not be able to refract, and instead reflects

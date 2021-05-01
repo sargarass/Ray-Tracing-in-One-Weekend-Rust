@@ -214,6 +214,22 @@ mod tests {
     }
 
     #[test]
+    fn vec3_from_f32_tuple() {
+        let a = Vec3::from((1.0, 2.0, 3.0));
+        assert_eq!(a.0, 1.0);
+        assert_eq!(a.1, 2.0);
+        assert_eq!(a.2, 3.0);
+    }
+
+    #[test]
+    fn vec3_into_f32_tuple() {
+        let a: (f32, f32, f32) = Vec3(1.0, 2.0, 3.0).into();
+        assert_eq!(a.0, 1.0);
+        assert_eq!(a.1, 2.0);
+        assert_eq!(a.2, 3.0);
+    }
+
+    #[test]
     fn vec3_xyz() {
         let a = Vec3(1.0, 2.0, 3.0);
         assert_eq!(a.x(), a.0);
@@ -227,6 +243,13 @@ mod tests {
         let b = Vec3(-1.0, -2.0, -3.0);
 
         assert_eq!(a + b, Vec3(0.0, 0.0, 0.0));
+    }
+
+    #[test]
+    fn vec3_div() {
+        let a = Vec3(4.0, 2.0, 6.0);
+
+        assert_eq!(a / 2.0, Vec3(2.0, 1.0, 3.0));
     }
 
     #[test]
@@ -271,5 +294,21 @@ mod tests {
     fn vec3_normalize() {
         let a = Vec3(4.0, 4.0, 2.0);
         assert_eq!(a.normalize(), Vec3(4.0 / 6.0, 4.0 / 6.0, 2.0 / 6.0));
+    }
+
+    #[test]
+    fn vec3_cross() {
+        let a = Vec3(1.0, 0.0, 0.0);
+        let b = Vec3(0.0, 1.0, 0.0);
+        let c = Vec3(0.0, 0.0, 1.0);
+
+        assert_eq!(Vec3::cross(a, b), c);
+        assert_eq!(Vec3::cross(b, c), a);
+        assert_eq!(Vec3::cross(c, a), b);
+
+        assert_eq!(Vec3::cross(b, a), -c);
+        assert_eq!(Vec3::cross(a, c), -b);
+        assert_eq!(Vec3::cross(c, b), -a);
+
     }
 }

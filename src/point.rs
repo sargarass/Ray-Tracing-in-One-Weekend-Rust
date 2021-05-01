@@ -97,8 +97,10 @@ mod tests {
     fn point3_sub() {
         let a = Point3(1.0, 1.0, 1.0);
         let b = Point3(2.0, 3.0, 4.0);
+        let c = Vec3(1.0, 1.0, 1.0);
 
         assert_eq!(b - a, Vec3(1.0, 2.0, 3.0));
         assert_eq!(a - b, Vec3(-1.0, -2.0, -3.0));
+        assert_eq!(a - c, Point3(0.0, 0.0, 0.0));
     }
 }

@@ -1,6 +1,7 @@
 use crate::point::Point3;
 use crate::ray::Ray;
 use crate::vector::{uniform_in_unit_disk, Cross, Normalize, Vec3};
+use rand::Rng;
 
 pub struct Camera {
     origin: Point3,
@@ -49,14 +50,17 @@ impl Camera {
         }
     }
 
-    pub fn get_ray(&self, s: f32, t: f32) -> Ray {
-        let (x, y) = uniform_in_unit_disk(&mut rand::thread_rng());
+    pub fn get_ray<R: Rng>(&self, rng: &mut R, s: f32, t: f32) -> Ray {
+        let (x, y) = uniform_in_unit_disk(rng);
         let offset = self.lens_radius * (x * self.u + y * self.v);
+        let direction = Vec3::normalize(
+            self.lower_left_corner + s * self.horizontal + t * self.vertical
+                - self.origin
+                - offset,
+        );
         Ray::new(
             self.origin + offset,
-            Vec3::normalize(
-                self.lower_left_corner + s * self.horizontal + t * self.vertical - self.origin - offset,
-            ),
+            direction,
         )
     }
 }
