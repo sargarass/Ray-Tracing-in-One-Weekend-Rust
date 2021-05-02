@@ -54,13 +54,8 @@ impl Camera {
         let (x, y) = uniform_in_unit_disk(rng);
         let offset = self.lens_radius * (x * self.u + y * self.v);
         let direction = Vec3::normalize(
-            self.lower_left_corner + s * self.horizontal + t * self.vertical
-                - self.origin
-                - offset,
+            self.lower_left_corner + s * self.horizontal + t * self.vertical - self.origin - offset,
         );
-        Ray::new(
-            self.origin + offset,
-            direction,
-        )
+        Ray::new(self.origin + offset, direction)
     }
 }

@@ -309,6 +309,5 @@ mod tests {
         assert_eq!(Vec3::cross(b, a), -c);
         assert_eq!(Vec3::cross(a, c), -b);
         assert_eq!(Vec3::cross(c, b), -a);
-
     }
 }

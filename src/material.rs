@@ -4,7 +4,7 @@ use crate::ray::Ray;
 use crate::vector::{uniform_in_unit_sphere, uniform_on_unit_sphere, Dot, Len, Normalize, Vec3};
 use rand::thread_rng;
 
-pub trait Scatterable {
+pub trait Scatterable: Sync + Send {
     fn scatter(&self, r_in: &Ray, hit: &Hit) -> Option<(Color, Ray)>;
 }
 
@@ -46,10 +46,7 @@ fn reflect(v: Vec3, un: Vec3) -> Vec3 {
         Vec3::almost_eq(un.normalize(), un, 1e-5),
         "un must be a unit vector"
     );
-    assert!(
-        Vec3::dot(v, un) <= 0.0,
-        "v, un must be on a same side"
-    );
+    assert!(Vec3::dot(v, un) <= 0.0, "v, un must be on a same side");
 
     v - 2.0 * Vec3::dot(v, un) * un
 }

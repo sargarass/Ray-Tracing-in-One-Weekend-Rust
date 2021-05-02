@@ -3,16 +3,16 @@ use crate::material::Scatterable;
 use crate::point::Point3;
 use crate::ray::Ray;
 use crate::vector::{Dot, Len, Normalize, Vec3};
-use std::rc::Rc;
+use std::sync::Arc;
 
 pub struct Sphere {
     pub center: Point3,
     pub radius: f32,
-    pub material: Rc<dyn Scatterable>,
+    pub material: Arc<dyn Scatterable>,
 }
 
 impl Sphere {
-    pub fn new(center: Point3, radius: f32, material: Rc<dyn Scatterable>) -> Sphere {
+    pub fn new(center: Point3, radius: f32, material: Arc<dyn Scatterable>) -> Sphere {
         Sphere {
             center,
             radius,

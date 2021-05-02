@@ -1,7 +1,7 @@
 use rand::distributions::Distribution;
+use rand::Rng;
 use rand_distr::Uniform;
 use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Sub, SubAssign};
-use rand::Rng;
 
 #[derive(Clone, Copy, Debug, PartialEq, Default)]
 pub struct Color(pub f32, pub f32, pub f32);
@@ -122,6 +122,15 @@ impl Div<f32> for Color {
     fn div(mut self, rhs: f32) -> Self::Output {
         self /= rhs;
         self
+    }
+}
+
+impl std::iter::Sum for Color {
+    fn sum<I>(iter: I) -> Self
+    where
+        I: Iterator<Item = Self>,
+    {
+        iter.fold(Color::zero(), |sum, x| sum + x)
     }
 }
 
