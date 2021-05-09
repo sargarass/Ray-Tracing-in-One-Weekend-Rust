@@ -7,6 +7,10 @@ pub trait Dot: Sized + Copy {
     fn dot(self, w: Self) -> f32;
 }
 
+pub trait Cross: Sized + Copy {
+    fn cross(self, v: Self) -> Self;
+}
+
 pub trait Len: Sized + Copy + Dot {
     fn len(self) -> f32 {
         self.len_squared().sqrt()
@@ -16,15 +20,15 @@ pub trait Len: Sized + Copy + Dot {
     }
 }
 
+impl<T> Len for T where T: Sized + Copy + Dot {}
+
 pub trait Normalize: Sized + Copy + Len + Dot + std::ops::Div<f32, Output = Self> {
     fn normalize(self) -> Self {
         self.div(self.len())
     }
 }
 
-pub trait Cross: Sized + Copy {
-    fn cross(self, v: Self) -> Self;
-}
+impl<T> Normalize for T where T: Sized + Copy + Len + Dot + std::ops::Div<f32, Output = Self> {}
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Vec3(pub f32, pub f32, pub f32);
@@ -36,8 +40,8 @@ impl From<Vec3> for (f32, f32, f32) {
 }
 
 impl From<(f32, f32, f32)> for Vec3 {
-    fn from(v: (f32, f32, f32)) -> Vec3 {
-        Vec3(v.0, v.1, v.2)
+    fn from(v: (f32, f32, f32)) -> Self {
+        Self(v.0, v.1, v.2)
     }
 }
 
@@ -138,10 +142,6 @@ impl Div<f32> for Vec3 {
         self
     }
 }
-
-impl Len for Vec3 {}
-
-impl Normalize for Vec3 {}
 
 impl Cross for Vec3 {
     fn cross(self, v: Self) -> Self {

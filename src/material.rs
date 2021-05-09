@@ -2,10 +2,12 @@ use crate::color::Color;
 use crate::hittable::Hit;
 use crate::ray::Ray;
 use crate::vector::{uniform_in_unit_sphere, uniform_on_unit_sphere, Dot, Len, Normalize, Vec3};
-use rand::thread_rng;
+use enum_dispatch::enum_dispatch;
+use rand::Rng;
 
-pub trait Scatterable: Sync + Send {
-    fn scatter(&self, r_in: &Ray, hit: &Hit) -> Option<(Color, Ray)>;
+#[enum_dispatch]
+pub trait Scatterable {
+    fn scatter<R: Rng>(&self, rng: &mut R, r_in: &Ray, hit: &Hit) -> Option<(Color, Ray)>;
 }
 
 pub struct Lambertian {
@@ -19,8 +21,8 @@ impl Lambertian {
 }
 
 impl Scatterable for Lambertian {
-    fn scatter(&self, _: &Ray, hit: &Hit) -> Option<(Color, Ray)> {
-        let mut scatter_dir = hit.n() + uniform_on_unit_sphere(&mut thread_rng()).into();
+    fn scatter<R: Rng>(&self, rng: &mut R, _: &Ray, hit: &Hit) -> Option<(Color, Ray)> {
+        let mut scatter_dir = hit.n() + uniform_on_unit_sphere(rng).into();
         if scatter_dir.len() < 1e-7 {
             scatter_dir = hit.n();
         }
@@ -52,7 +54,7 @@ fn reflect(v: Vec3, un: Vec3) -> Vec3 {
 }
 
 impl Scatterable for Metal {
-    fn scatter(&self, r_in: &Ray, hit: &Hit) -> Option<(Color, Ray)> {
+    fn scatter<R: Rng>(&self, rng: &mut R, r_in: &Ray, hit: &Hit) -> Option<(Color, Ray)> {
         if Vec3::dot(r_in.dir, hit.n()) > 0.0 {
             return None;
         }
@@ -60,9 +62,7 @@ impl Scatterable for Metal {
         let reflected = reflect(r_in.dir, hit.n());
         let scattered = Ray::new(
             hit.p(),
-            Vec3::normalize(
-                reflected + self.fuzz * Vec3::from(uniform_in_unit_sphere(&mut thread_rng())),
-            ),
+            Vec3::normalize(reflected + self.fuzz * Vec3::from(uniform_in_unit_sphere(rng))),
         );
         if Vec3::dot(scattered.dir, hit.n()) <= 0.0 {
             return None;
@@ -110,7 +110,7 @@ fn reflectance(cosine: f32, index_of_refraction: f32) -> f32 {
 }
 
 impl Scatterable for Dielectric {
-    fn scatter(&self, r_in: &Ray, hit: &Hit) -> Option<(Color, Ray)> {
+    fn scatter<R: Rng>(&self, rng: &mut R, r_in: &Ray, hit: &Hit) -> Option<(Color, Ray)> {
         let refraction_ratio = if hit.front_face() {
             1.0 / self.index_of_refraction
         } else {
@@ -123,7 +123,7 @@ impl Scatterable for Dielectric {
         let direction =
             // Depending on the refraction ratio, the light might not be able to refract, and instead reflects
             // Uses Schlick's approximation as the reflection varies with the angle.
-            if rand::random::<f32>() < reflectance(cos_theta, refraction_ratio) {
+            if rng.gen::<f32>() < reflectance(cos_theta, refraction_ratio) {
                 reflect(r_in.dir, hit.n())
             } else if let Some(refracted) = refract(r_in.dir, hit.n(), refraction_ratio) {
                 refracted.normalize()
@@ -132,4 +132,11 @@ impl Scatterable for Dielectric {
             };
         Some((attenuation, Ray::new(hit.p(), direction)))
     }
+}
+
+#[enum_dispatch(Scatterable)]
+pub enum Material {
+    Metal(Metal),
+    Lambertian(Lambertian),
+    Dielectric(Dielectric),
 }

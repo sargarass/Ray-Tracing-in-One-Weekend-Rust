@@ -1,5 +1,5 @@
 use crate::point::Point3;
-use crate::vector::{Normalize, Vec3};
+use crate::vector::{Len, Normalize, Vec3};
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Ray {
@@ -10,8 +10,9 @@ pub struct Ray {
 impl Ray {
     pub fn new(origin: Point3, direction: Vec3) -> Ray {
         assert!(
-            Vec3::almost_eq(direction.normalize(), direction, 1e-5),
-            "unit_normal must be a unit vector"
+            Vec3::almost_eq(direction.normalize(), direction, 5e-5),
+            "direction must be a unit vector {}",
+            Vec3::len(direction.normalize() - direction)
         );
         Ray {
             orig: origin,

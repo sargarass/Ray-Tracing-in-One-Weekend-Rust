@@ -17,23 +17,24 @@ use crate::camera::Camera;
 use crate::color::Color;
 use crate::hittable::Hittable;
 use crate::hittable_vec::HittableVec;
-use crate::material::{Dielectric, Lambertian, Metal};
+use crate::material::{Dielectric, Lambertian, Metal, Scatterable};
 use crate::point::Point3;
 use crate::ray::Ray;
 use crate::sphere::Sphere;
 use crate::vector::{Len, Vec3};
 use rand::distributions::{Distribution, Uniform};
-use rand::{Rng, RngCore};
+use rand::rngs::SmallRng;
+use rand::{Rng, SeedableRng};
 use rayon::prelude::*;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
-fn ray_color(world: &HittableVec, mut ray: Ray, max_depth: u32) -> Color {
+fn ray_color<R: Rng>(rng: &mut R, world: &HittableVec, mut ray: Ray, max_depth: u32) -> Color {
     let mut intensity = Color(1.0, 1.0, 1.0);
     for _depth in 0..max_depth {
         if let Some((hit, mat)) = world.hit(&ray, 1e-3, f32::MAX) {
-            if let Some((attenuation, scattered)) = mat.scatter(&ray, &hit) {
+            if let Some((attenuation, scattered)) = mat.scatter(rng, &ray, &hit) {
                 ray = scattered;
                 intensity *= attenuation;
                 continue;
@@ -51,12 +52,12 @@ fn random_scene() -> hittable_vec::HittableVec {
     world.push(Box::new(Sphere::new(
         Point3(0.0, -1000.0, 0.0),
         1000.0,
-        Arc::new(Lambertian::new(Color(0.5, 0.5, 0.5))),
+        Lambertian::new(Color(0.5, 0.5, 0.5)).into(),
     )));
 
-    let mut rng = rand::thread_rng();
-    for a in -11..11 {
-        for b in -11..11 {
+    let mut rng = SmallRng::seed_from_u64(0);
+    for a in -5..5 {
+        for b in -5..5 {
             let a = a as f32;
             let b = b as f32;
             let choose_mat: f32 = rng.gen();
@@ -66,18 +67,18 @@ fn random_scene() -> hittable_vec::HittableVec {
                 if choose_mat < 0.8 {
                     // diffuse
                     let albedo = Color::random(&mut rng) * Color::random(&mut rng);
-                    let material = Arc::new(Lambertian::new(albedo));
-                    world.push(Box::new(Sphere::new(center, 0.2, material)));
+                    let material = Lambertian::new(albedo);
+                    world.push(Box::new(Sphere::new(center, 0.2, material.into())));
                 } else if choose_mat < 0.95 {
                     // metal
                     let albedo = Color::random_minmax(&mut rng, 0.5, 1.0);
                     let fuzz = rng.gen_range(0.0..0.5);
-                    let material = Arc::new(Metal::new(albedo, fuzz));
-                    world.push(Box::new(Sphere::new(center, 0.2, material)));
+                    let material = Metal::new(albedo, fuzz);
+                    world.push(Box::new(Sphere::new(center, 0.2, material.into())));
                 } else {
                     // glass
-                    let material = Arc::new(Dielectric::new(1.5));
-                    world.push(Box::new(Sphere::new(center, 0.2, material)));
+                    let material = Dielectric::new(1.5);
+                    world.push(Box::new(Sphere::new(center, 0.2, material.into())));
                 }
             }
         }
@@ -86,17 +87,17 @@ fn random_scene() -> hittable_vec::HittableVec {
     world.push(Box::new(Sphere::new(
         Point3(0.0, 1.0, 0.0),
         1.0,
-        Arc::new(Dielectric::new(1.5)),
+        Dielectric::new(1.5).into(),
     )));
     world.push(Box::new(Sphere::new(
         Point3(-4.0, 1.0, 0.0),
         1.0,
-        Arc::new(Lambertian::new(Color(0.4, 0.2, 0.1))),
+        Lambertian::new(Color(0.4, 0.2, 0.1)).into(),
     )));
     world.push(Box::new(Sphere::new(
         Point3(4.0, 1.0, 0.0),
         1.0,
-        Arc::new(Metal::new(Color(0.7, 0.6, 0.5), 0.0)),
+        Metal::new(Color(0.7, 0.6, 0.5), 0.0).into(),
     )));
     world
 }
@@ -176,23 +177,24 @@ fn main() -> Result<(), Box<dyn Error>> {
             }
         });
     }
-
+    let rng = SmallRng::seed_from_u64(0);
     let image: Vec<Vec<_>> = (0..image_height)
         .into_par_iter()
         .rev()
         .map(|j| {
             (0..image_width)
                 .map(|i| {
-                    let mut rng = rand::thread_rng();
-                    let distribution = Uniform::from(-0.5..=0.5);
                     let mut pixel: Color = (0..samples_per_pixel)
                         .map(|_| {
+                            let mut rng = rng.clone();
+                            let distribution = Uniform::from(-0.5..=0.5);
+
                             let di = distribution.sample(&mut rng);
                             let dj = distribution.sample(&mut rng);
                             let u = (i as f32 + di) / (image_width - 1) as f32;
                             let v = (j as f32 + dj) / (image_height - 1) as f32;
                             let r = camera.get_ray(&mut rng, u, v);
-                            let c = ray_color(&world, r, depth);
+                            let c = ray_color(&mut rng, &world, r, depth);
                             metrics.rays_count.fetch_add(1, Ordering::Relaxed);
                             c
                         })

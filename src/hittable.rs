@@ -1,4 +1,4 @@
-use crate::material::Scatterable;
+use crate::material::Material;
 use crate::point::Point3;
 use crate::ray::Ray;
 use crate::vector::{Dot, Normalize, Vec3};
@@ -50,5 +50,5 @@ impl Hit {
 }
 
 pub trait Hittable: Sync + Send {
-    fn hit(&self, r: &Ray, t_min: f32, t_max: f32) -> Option<(Hit, &dyn Scatterable)>;
+    fn hit(&self, r: &Ray, t_min: f32, t_max: f32) -> Option<(Hit, &Material)>;
 }
